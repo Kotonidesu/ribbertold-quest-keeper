@@ -122,7 +122,11 @@ body {
   color: var(--gold-bright);
 }
 
-.hud__nav[hidden] {
+/* Hidden but still occupying their space. The campaign name is centred by the
+   equal weight either side of it, so anything that leaves the layout when it
+   disappears drags the title off centre with it. */
+.hud__nav[hidden],
+.hud__edit[hidden] {
   visibility: hidden;
   display: block;
 }
@@ -614,6 +618,12 @@ body {
   gap: 0.35rem;
   align-items: center;
   margin-top: 0.6rem;
+}
+
+/* A button sitting straight under the text, rather than inside .state__actions,
+   has nothing else to space it: the sign-in screen is the only such case. */
+.state > .state__button {
+  margin-top: 0.85rem;
 }
 
 .state__button {

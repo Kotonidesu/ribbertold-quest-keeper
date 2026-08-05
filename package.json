@@ -1,6 +1,6 @@
 {
   "name": "ribbertold-quest-keeper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Always-on-top shared D&D quest log",
   "main": "src/main.js",
   "private": true,
