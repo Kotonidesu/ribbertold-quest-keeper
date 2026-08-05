@@ -171,6 +171,35 @@ clutter: `fullscreenable: false`, the `screen-saver` always-on-top level, and
 what keeps the panel visible over a fullscreened Roll20 on macOS, confirmed
 working. Remove any one and it drops behind.
 
+## Releasing an update
+
+Bump `version` in package.json, commit, then tag it:
+
+```
+git tag v1.0.1 && git push origin v1.0.1
+```
+
+GitHub Actions builds the Windows installer and publishes it to a Release.
+Installed Windows copies pick it up within six hours, download it in the
+background, and apply it the next time the app quits. Nothing interrupts a
+session, so someone mid-game is at worst one version behind until they close it.
+
+The build runs on a Windows runner because NSIS, the only Windows target
+electron-updater can update, cannot be built on macOS without wine. `config.json`
+is written in CI from the `SUPABASE_URL` and `SUPABASE_ANON_KEY` repository
+secrets, since it is gitignored.
+
+**macOS does not auto-update, on purpose.** Squirrel.Mac only accepts an update
+signed by the same identity as the running app, and there is no Developer ID
+certificate, so every check would fail. Rebuild the Mac copy locally with
+`npm run dist:mac` instead.
+
+One rule when changing the database: old clients keep running against the shared
+server. Additive schema changes (new columns, looser policies) are safe
+indefinitely. Destructive ones are not, and a tightened policy fails silently by
+returning no rows rather than an error, so ship the schema change and the new
+build together.
+
 ## Building for other people
 
 `npm run dist` produces a `.dmg` for macOS (Apple Silicon and Intel) and a
