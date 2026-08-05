@@ -1,0 +1,56 @@
+# Builds the Windows installer and publishes it to a GitHub Release.
+#
+# On a Windows runner rather than locally because the NSIS installer, which is
+# the only Windows target electron-updater can update, cannot be built on macOS
+# without wine.
+#
+# macOS is not built here. Squirrel.Mac only accepts updates signed by the same
+# identity as the running app, and there is no Developer ID certificate, so a
+# published Mac build could never update itself. Build that one locally.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # config.json is gitignored, since it points at a specific Supabase
+      # project. The build has to carry it or the app cannot reach anything.
+      # The anon key is meant to ship inside the client; row level security is
+      # what protects the data, not the secrecy of this value.
+      - name: Write config.json
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "SUPABASE_URL and SUPABASE_ANON_KEY repository secrets are not set."
+            exit 1
+          fi
+          printf '{\n  "supabaseUrl": "%s",\n  "supabaseAnonKey": "%s"\n}\n' \
+            "$SUPABASE_URL" "$SUPABASE_ANON_KEY" > config.json
+
+      - name: Build and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish always

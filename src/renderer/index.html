@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <title>Ribbertold Quest Keeper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="hud" id="hud">
+    <header class="hud__header">
+      <button class="hud__edit" id="edit" type="button" aria-label="Edit quests" aria-pressed="false">edit</button>
+      <button class="hud__nav" id="prev" type="button" aria-label="Previous campaign">&#8249;</button>
+      <h1 class="hud__campaign" id="campaign"></h1>
+      <button class="hud__nav" id="next" type="button" aria-label="Next campaign">&#8250;</button>
+      <span class="hud__controls">
+        <button class="hud__ctrl" id="collapse" type="button" aria-label="Collapse quest log">&#8722;</button>
+        <button class="hud__ctrl" id="close" type="button" aria-label="Hide quest log">&#10005;</button>
+      </span>
+    </header>
+
+    <div class="hud__rule">
+      <span class="hud__rule-mark">
+        <span class="hud__spark hud__spark--lead">&#10023;</span>
+        <span class="hud__spark">&#10022;</span>
+        <span class="hud__spark hud__spark--trail">&#10023;</span>
+      </span>
+    </div>
+
+    <div class="hud__admin" id="admin"></div>
+    <p class="hud__notice" id="notice" hidden></p>
+
+    <div class="hud__quests" id="quests"></div>
+
+    <footer class="hud__footer" id="footer"></footer>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

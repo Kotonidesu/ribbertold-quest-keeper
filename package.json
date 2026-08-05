@@ -1,0 +1,83 @@
+{
+  "name": "ribbertold-quest-keeper",
+  "version": "1.0.0",
+  "description": "Always-on-top shared D&D quest log",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "icons": "electron tools/make-tray-icon.js",
+    "dist": "electron-builder --mac --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.1",
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.mcdoogan.ribbertold",
+    "productName": "Ribbertold Quest Keeper",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "config.json",
+      "!assets/*preview*"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.entertainment",
+      "identity": null
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "Ribbertold Quest Keeper"
+    },
+    "afterPack": "build/after-pack.js",
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Kotonidesu",
+        "repo": "ribbertold-quest-keeper"
+      }
+    ]
+  },
+  "productName": "Ribbertold Quest Keeper"
+}

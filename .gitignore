@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.DS_Store
+
+# Supabase project URL and anon key. The anon key is meant to ship inside the
+# app, but keeping it out of git means a repo you share does not point at your
+# project by default. Copy config.example.json to config.json to set it up.
+config.json
+
+# Large-scale renders used only for eyeballing icon shapes.
+assets/*preview*.png
+
+# Generated from assets/app-icon.png by `npm run icons`.
+build/icon.png

@@ -1,0 +1,686 @@
+/**
+ * Skyrim-style parchment quest log.
+ *
+ * The page background stays transparent so only the parchment panel shows
+ * against the desktop. The aged-paper look is built from layered gradients
+ * plus an inline SVG noise texture — no image assets, so it survives being
+ * packaged and works offline.
+ */
+
+:root {
+  --parchment: #e6d8b8;
+  --parchment-dark: #cdb98d;
+  --ink: #2f2617;
+  --ink-soft: #6b5b3e;
+  --ink-faded: #93815d;
+  --gold: #9c7c34;
+  --gold-bright: #c8a23f;
+  --gold-deep: #75591f;
+  --edge: rgba(58, 44, 22, 0.55);
+  --radius: 6px;
+  --keyline-inset: 4px;
+  --warn: #8a3520;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  color: var(--ink);
+  cursor: default;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hud {
+  position: relative;
+  /* No bottom padding: the footer owns the space down to the border so its
+     text can sit centred in it. The collapsed state puts its own back. */
+  padding: 0.75rem 0.5rem 0;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background-color: var(--parchment);
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(255, 249, 224, 0.75), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(140, 110, 60, 0.28), transparent 60%),
+    linear-gradient(160deg, rgba(255, 250, 230, 0.35) 0%, transparent 40%, rgba(120, 94, 48, 0.22) 100%);
+  box-shadow:
+    inset 0 0 2.5rem rgba(110, 84, 40, 0.45),
+    0 0.5rem 1.75rem rgba(0, 0, 0, 0.55);
+}
+
+/* Paper grain. Sits above the gradients, below the content. */
+.hud::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+}
+
+/* Inner keyline, the double-rule border on Skyrim's book pages. Shares the
+   panel's radius outright rather than a concentric one, so both corners read
+   as the same curve. */
+.hud::after {
+  content: "";
+  position: absolute;
+  inset: var(--keyline-inset);
+  border-radius: var(--radius);
+  pointer-events: none;
+  border: 1px solid rgba(90, 70, 34, 0.3);
+}
+
+.hud > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header ------------------------------------------------------------------ */
+
+.hud__header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  -webkit-app-region: drag;
+}
+
+.hud__campaign {
+  flex: 1;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.09em;
+  text-align: center;
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(255, 250, 230, 0.5);
+}
+
+.hud__nav {
+  -webkit-app-region: no-drag;
+  padding: 0 0.35rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--ink-faded);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.hud__nav:hover {
+  color: var(--gold-bright);
+}
+
+.hud__nav[hidden] {
+  visibility: hidden;
+  display: block;
+}
+
+/* A labelled chip rather than another dim glyph. Edit mode changes what every
+   click in the panel does, so the control that arms it should be findable and
+   should say plainly whether it is on. */
+.hud__edit {
+  -webkit-app-region: no-drag;
+  padding: 0.1rem 0 0.14rem;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  background: none;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.hud__edit:hover {
+  border-color: var(--gold-bright);
+  background: rgba(255, 250, 230, 0.5);
+  color: var(--ink);
+}
+
+.hud__edit--on {
+  border-color: var(--gold-deep);
+  background: var(--gold-deep);
+  color: var(--parchment);
+}
+
+.hud__edit--on:hover {
+  border-color: var(--gold-deep);
+  background: var(--gold-deep);
+  color: var(--parchment);
+}
+
+/* Content action left, window actions right, matched widths so the campaign
+   name stays centred between them. */
+.hud__edit,
+.hud__controls {
+  flex: 0 0 2.7rem;
+}
+
+.hud__controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.1rem;
+}
+
+.hud__ctrl {
+  -webkit-app-region: no-drag;
+  width: 1.15rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--ink-faded);
+  opacity: 0.65;
+  cursor: pointer;
+  transition: opacity 120ms ease, color 120ms ease;
+}
+
+.hud__ctrl:hover {
+  opacity: 1;
+  color: var(--gold-bright);
+}
+
+/* Collapsed: the title bar stays, everything below it goes. The window
+   follows the panel's height, so this leaves a slim strip on screen. */
+.hud--collapsed .hud__rule,
+.hud--collapsed .hud__quests,
+.hud--collapsed .hud__footer {
+  display: none;
+}
+
+.hud--collapsed {
+  padding-bottom: 0.75rem;
+}
+
+/* Divider ----------------------------------------------------------------- */
+
+/* A sparkle cluster with a rule running out to either side. The rules are
+   pseudo-elements that flex to fill whatever the sparkles leave, so the
+   cluster stays centred without either side being measured. */
+.hud__rule {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.45rem 0.75rem 0.6rem;
+}
+
+.hud__rule::before,
+.hud__rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+}
+
+.hud__rule::before {
+  background: linear-gradient(to right, transparent, var(--gold));
+}
+
+.hud__rule::after {
+  background: linear-gradient(to right, var(--gold), transparent);
+}
+
+/* Flex rather than letter-spacing, which would leave a trailing gap after the
+   last glyph and push the cluster off centre. */
+.hud__rule-mark {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* At one size these four-pointed stars read as three small diamonds. A large
+   one between two smaller ones sitting off the line is what makes it a
+   sparkle. */
+.hud__spark {
+  display: inline-block;
+  font-size: 0.76rem;
+  line-height: 1;
+  color: var(--gold-bright);
+}
+
+.hud__spark--lead,
+.hud__spark--trail {
+  font-size: 0.44rem;
+  color: var(--gold);
+}
+
+.hud__spark--lead {
+  transform: translateY(-0.32em);
+}
+
+.hud__spark--trail {
+  transform: translateY(0.3em);
+}
+
+/* Quests ------------------------------------------------------------------ */
+
+.hud__quests {
+  max-height: 32rem;
+  padding: 0 0.75rem;
+  overflow-y: auto;
+}
+
+.hud__quests::-webkit-scrollbar {
+  width: 4px;
+}
+
+.hud__quests::-webkit-scrollbar-thumb {
+  background: rgba(120, 96, 46, 0.5);
+  border-radius: 2px;
+}
+
+.quest {
+  padding: 0 0 0 0.6rem;
+  margin-bottom: 1rem;
+  border-left: 2px solid transparent;
+}
+
+.quest:last-child {
+  margin-bottom: 0;
+}
+
+.quest--active {
+  border-left-color: var(--gold-bright);
+}
+
+.quest--completed {
+  opacity: 0.5;
+}
+
+.quest__title {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 rgba(255, 250, 230, 0.45);
+}
+
+.quest--completed .quest__title {
+  color: var(--ink-soft);
+}
+
+.quest__location {
+  margin: 0.1rem 0 0.4rem;
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--ink-faded);
+}
+
+.quest__objectives {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.objective {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.13rem 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.objective:hover {
+  color: var(--ink);
+}
+
+.objective__bullet {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--gold);
+  background: none;
+  transform: rotate(45deg) translateY(-1px);
+}
+
+.objective--done {
+  color: var(--ink-faded);
+  text-decoration: line-through;
+  text-decoration-color: rgba(120, 96, 46, 0.6);
+}
+
+.objective--done .objective__bullet {
+  border-color: var(--ink-faded);
+  background: var(--ink-faded);
+}
+
+/* Edit mode --------------------------------------------------------------- */
+
+/* The header is a drag region, which swallows clicks. The campaign name has to
+   opt out of that or it cannot be typed into. */
+.hud--editing .hud__campaign {
+  -webkit-app-region: no-drag;
+}
+
+.hud__admin:empty {
+  display: none;
+}
+
+.hud__admin {
+  padding: 0 0.75rem 0.5rem;
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(120, 96, 46, 0.28);
+}
+
+.admin__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Invite code ------------------------------------------------------------- */
+
+.invite {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.2rem 0 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.invite__label {
+  font-size: 0.62rem;
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  color: var(--ink-faded);
+}
+
+.invite__code {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--ink-soft);
+}
+
+.invite:hover .invite__code {
+  color: var(--gold-bright);
+}
+
+.join {
+  display: flex;
+  gap: 0.35rem;
+  padding-top: 0.25rem;
+}
+
+.join__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid rgba(120, 96, 46, 0.5);
+  border-radius: 2px;
+  background: rgba(255, 250, 230, 0.5);
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  outline: none;
+}
+
+.join__input:focus {
+  border-color: var(--gold-bright);
+}
+
+.join__go {
+  flex: none;
+  padding: 0 0.5rem;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  background: none;
+  font: inherit;
+  font-size: 0.66rem;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.join__go:hover {
+  border-color: var(--gold-bright);
+  background: rgba(255, 250, 230, 0.5);
+}
+
+.field {
+  outline: none;
+}
+
+.hud--editing .field {
+  border-bottom: 1px dotted rgba(120, 96, 46, 0.5);
+  cursor: text;
+}
+
+.hud--editing .field:focus {
+  border-bottom: 1px solid var(--gold-bright);
+  background: rgba(255, 250, 230, 0.45);
+}
+
+.field:empty::before {
+  content: attr(data-placeholder);
+  font-style: italic;
+  color: var(--ink-faded);
+}
+
+.hud--editing .objective {
+  cursor: default;
+}
+
+.objective .field {
+  flex: 1;
+}
+
+.objective__bullet--button {
+  cursor: pointer;
+}
+
+.quest__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.quest__head .quest__title {
+  flex: 1;
+}
+
+.quest__status {
+  flex: none;
+  padding: 0 0.25rem;
+  border: 1px solid rgba(120, 96, 46, 0.4);
+  border-radius: 2px;
+  background: none;
+  font: inherit;
+  font-size: 0.6rem;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.quest__status:hover {
+  border-color: var(--gold-bright);
+  color: var(--ink);
+}
+
+.add-row {
+  display: block;
+  padding: 0.2rem 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.72rem;
+  font-style: italic;
+  text-align: left;
+  color: var(--ink-faded);
+  cursor: pointer;
+}
+
+.add-row:hover {
+  color: var(--gold-bright);
+}
+
+.move {
+  flex: none;
+  padding: 0 0.08rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--ink-faded);
+  cursor: pointer;
+}
+
+.move:hover {
+  color: var(--gold-bright);
+}
+
+/* Hidden at the ends of a list but still taking its space, so rows keep their
+   alignment as items move up and down. */
+.move--end {
+  visibility: hidden;
+}
+
+.delete {
+  flex: none;
+  padding: 0 0.15rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1;
+  color: var(--ink-faded);
+  cursor: pointer;
+}
+
+.delete:hover {
+  color: var(--ink);
+}
+
+.delete--armed {
+  font-weight: 700;
+  color: var(--warn);
+}
+
+/* Signed out, loading, failed, empty -------------------------------------- */
+
+.state {
+  padding: 0.6rem 0 0.9rem;
+  text-align: center;
+}
+
+.state__text {
+  margin: 0 0 0.15rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.state__detail {
+  margin: 0 0 0.6rem;
+  font-size: 0.7rem;
+  font-style: italic;
+  color: var(--ink-faded);
+}
+
+.state__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+  margin-top: 0.6rem;
+}
+
+.state__button {
+  padding: 0.3rem 0.9rem;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  background: none;
+  font: inherit;
+  font-size: 0.72rem;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.state__button:hover:not(:disabled) {
+  border-color: var(--gold-bright);
+  background: rgba(255, 250, 230, 0.5);
+}
+
+.state__button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Anything the server refused, or that failed on the way there. */
+.hud__notice {
+  margin: 0 0 0.5rem;
+  padding: 0 0.75rem;
+  font-size: 0.7rem;
+  text-align: center;
+  color: var(--warn);
+}
+
+/* Divides the shared list from the DM's own. */
+.section {
+  margin: 0.4rem 0 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(120, 96, 46, 0.28);
+  font-size: 0.62rem;
+  font-variant: small-caps;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: var(--ink-faded);
+}
+
+/* Footer ------------------------------------------------------------------ */
+
+/* Centred in the gap between two 1px lines: the divider above (this element's
+   own border-top) and the panel's bottom border below.
+
+   Equal padding is not enough. A line box reserves room for descenders, and
+   these small caps use almost none of it: the visible ink is 7.2px inside a
+   14.5px box, sitting low within it. Centring the box therefore leaves the
+   letters looking low, so the padding is skewed by the measured difference to
+   centre the ink instead. Remeasure if the font or size changes. */
+.hud__footer {
+  --optical-shift: 1.75px;
+
+  padding: calc(0.62rem - var(--optical-shift)) 0.75rem calc(0.62rem + var(--optical-shift));
+  margin-top: 0.6rem;
+  border-top: 1px solid rgba(120, 96, 46, 0.28);
+  line-height: 1;
+  font-size: 0.66rem;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--ink-faded);
+}
